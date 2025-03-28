@@ -1,0 +1,24 @@
+path: /home/aryan/workspaces/umic_ws/src/starship_detector/starship_detector/data/og_images/starships.v3i.yolov5-obb 
+
+train: train/images
+test: test/images
+val: val/images
+
+nc: 1
+names: ['superman']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
