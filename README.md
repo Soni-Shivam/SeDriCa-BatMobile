@@ -1,4 +1,7 @@
 <h3 align="center">For Motion Planning</h3>
+
+
+<h2>README TO BE UPDATED. THIS IS THE OLD ONE</h2>
 <h2>PID Control for autonomous path following</h2>
 PIDv1 - basic code with error wrt angle subtended to the next waypoint <br/>
 PIDv2 - fixed many logical errors and implement rviz and matplotlib visualisation<br/>
