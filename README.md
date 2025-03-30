@@ -7,7 +7,7 @@
 
 ## Overview
 
-SeDriCa-BatMobile is an autonomous robotics platform that combines perception, motion planning, and target acquisition capabilities. The system is built on ROS2 and features both integrated control pipelines and simulation environments for testing and development.
+SeDriCa-BatMobile is an autonomous robotics platform that combines perception, motion planning, and target shooting capabilities. The system is built on ROS2 and features both integrated control pipelines and simulation environments for testing and development.
 
 ## Repository Structure
 
