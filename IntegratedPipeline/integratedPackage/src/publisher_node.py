@@ -1,13 +1,7 @@
 import rclpy
 from rclpy.node import Node
-
-
 from geometry_msgs.msg import Point
-
-from starship_detector import locate_func
-
-
-
+from src import locate_func
 class JokerFinder(Node):
 
 

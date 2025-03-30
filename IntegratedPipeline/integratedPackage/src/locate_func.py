@@ -9,7 +9,7 @@ from ultralytics import YOLO
 
 img_w=640
 img_h=480
-model = YOLO("/home/aryan/runs/detect/train15/weights/best.pt")
+model = YOLO("../best.pt")
 #model = YOLO("/home/aryan/runs/detect/train10/weights/best.pt")
 
 pipeline = rs.pipeline()
@@ -26,8 +26,6 @@ pipeline.start(config)
 profile = pipeline.get_active_profile()
 depth_sensor = profile.get_device().first_depth_sensor()
 depth_scale = depth_sensor.get_depth_scale()
-
-
 color_intrinsics = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
 depth_intrinsics = profile.get_stream(rs.stream.depth).as_video_stream_profile().get_intrinsics()
 def get_location():
