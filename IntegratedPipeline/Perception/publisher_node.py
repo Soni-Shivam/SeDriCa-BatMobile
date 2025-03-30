@@ -15,7 +15,7 @@ class JokerFinder(Node):
         super().__init__('target_location')
         self.pub=self.create_publisher(Point,'get_point',10)
 
-        timer_period = 1
+        timer_period = 0.5
         self.timer = self.create_timer(timer_period, self.callback)
 
 
