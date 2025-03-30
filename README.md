@@ -2,7 +2,7 @@
 
 <p align="center">
   <br>
-  <em>Autonomous Navigation and Target Acquisition System</em>
+  <em>Autonomous Navigation and Projectile Shooter System</em>
 </p>
 
 ## Overview
