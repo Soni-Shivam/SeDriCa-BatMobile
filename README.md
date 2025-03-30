@@ -117,7 +117,7 @@ The `occupancy_matrix` package provides tools for environmental mapping and path
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/SeDriCa-BatMobile.git
+   git clone https://github.com/Soni-Shivam/SeDriCa-BatMobile.git
    cd SeDriCa-BatMobile
    ```
 
