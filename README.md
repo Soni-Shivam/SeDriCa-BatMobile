@@ -55,7 +55,7 @@ The Motion_Planning directory contains tools for path planning, navigation contr
 
 The `gazebo_car_simulation` package provides a complete 3D simulation environment for testing the BatMobile's navigation capabilities.
 
-![Gazebo Simulation](docs/images/gazebo_simulation.png)
+![Gazebo Simulation](docs/images/gazebo.webm)<br>
 *Gazebo simulation environment with the BatMobile model*
 
 ### PID Control Implementation
@@ -90,7 +90,6 @@ The `rviz_path_simulation` package provides visualization for testing path plann
 #### Features
 - **Path Visualization**: Display planned paths and robot trajectory
 
-![RViz Path Following](docs/images/rviz_path.png)
 *RViz visualization of path following with cross-track error highlighted*
 
 ### Occupancy Matrix
