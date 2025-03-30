@@ -1,56 +1,170 @@
-<h3 align="center">For Motion Planning</h3>
+# SeDriCa-BatMobile
 
+<p align="center">
+  <br>
+  <em>Autonomous Navigation and Target Acquisition System</em>
+</p>
 
-<h2>README TO BE UPDATED. THIS IS THE OLD ONE</h2>
-<h2>PID Control for autonomous path following</h2>
-PIDv1 - basic code with error wrt angle subtended to the next waypoint <br/>
-PIDv2 - fixed many logical errors and implement rviz and matplotlib visualisation<br/>
-PIDv3 - entire revamp of the code, error is now the cross track error.<br/>
-PIDv4 - pid paramaters now support auto-tuning with respect to any path.<br/>
-PIDv5 & v6 (LATEST) - pid enhances(not directly runs) the motion of the car. fixed this core issue. more realistic turning mechanism with angular velocity support <br/>
+## Overview
 
-<br/>
-<h4>PIDv6 (LATEST) visualised</h4>
+SeDriCa-BatMobile is an autonomous robotics platform that combines perception, motion planning, and target acquisition capabilities. The system is built on ROS2 and features both integrated control pipelines and simulation environments for testing and development.
 
-![image](https://github.com/user-attachments/assets/915a8429-336a-4b62-9216-0037165c3326)
-<br/>
+## Repository Structure
 
-<h5>The car is no longer blind (as in previous codes). The car drives itself while pid control fixes the crosstrack error (which should have been from the start but implemented finally in v6.)</h5>
+This repository contains two main components:
 
-![image](https://github.com/user-attachments/assets/bfd347b3-d0b1-48e6-905c-ed4621094299)
-<br/>
-<h4>Image showing the auto-tuning process for pid params (pidv4)</h4>
+- **IntegratedPipeline**: Contains the target detection, tracking, and cannon control system.
+- **Motion_Planning**: Includes path planning, PID control for autonomous navigation, and Gazebo simulation environments.
 
-![image](https://github.com/user-attachments/assets/d7525bf5-060b-4899-85c1-1fc37aade531)
-<br/>
+## IntegratedPipeline
 
-![image](https://github.com/user-attachments/assets/97ba3cbd-a407-412f-94dd-6d47729676f0)
-<br/>
-<h4>Image showing the path followed with the tuned parameters for a sinosuidal curve (pidv4)</h4>
-<br/>
+### `batmobile_integrated` Package
 
-![image](https://github.com/user-attachments/assets/a6b80ed3-f293-4f32-b2f0-0466cbb2f9ef)
-<br/>
+This package integrates the core logic for the BatMobile's autonomous target acquisition and cannon control.
 
-![image](https://github.com/user-attachments/assets/0c5d7435-6a3d-43f3-a70c-1a3cbf9a4506)
-<h4>Gazebo simulation for the car. The basic differential drive model is ready. testing is yet to be done</h4>
-<br/>
+#### Features
 
-<br/>
-Also started changelog tracking in this repo
-<br/>
+- **Intelligent Target Scanning**: Combined movement and rotation pattern for efficient target detection
+- **State Machine Architecture**: Handles scanning, turning, approaching, and shooting phases
+- **Cannon Control**: Precision aiming with adjustable angle and firing mechanism
 
+#### Nodes
 
-<h2>Initial works</h2>
-Generates an Arbritary Occupancy Matrix 
-Calculates target and its points
-Generates a straight line path to reach at a certain distance before it.
-<br/>
+- **`coordinates_receiver` (Executable)**: Contains two logical nodes managed by an executor:
+  - `coordinate_subscriber`: Subscribes to `/get_point` for target coordinates
+  - `target_publisher`: Publishes control commands to `/Control_instruction`
 
-![image](https://github.com/user-attachments/assets/fb11d7fc-932d-4b48-b570-4bedd5ed120a)
-<br/>
-Plots a straight line path as shown. 
-Magenta dot is start position.
-Green dot is target/stopping postion.
+#### Topics
 
-![image](https://github.com/user-attachments/assets/a2c3da60-ce9e-42d3-ba4d-ffea3b64b30e)
+- **`/get_point`** (`geometry_msgs/msg/Point`): Input topic for receiving target coordinates (x, y, z)
+- **`/Control_instruction`** (`batmobile_integrated/msg/ControlInstructions`): Output topic publishing control commands
+
+#### Custom Messages
+
+- **`ControlInstructions.msg`**:
+  - `float32 linear_speed`: Desired forward/backward speed
+  - `float32 angular_speed`: Desired turning speed
+  - `bool shoot_cannon`: Flag to indicate whether to fire the cannon
+  - `float32 cannon_angle`: Desired vertical angle for the cannon in radians
+
+## Motion Planning
+
+The Motion_Planning directory contains tools for path planning, navigation control, and simulation environments.
+
+### Gazebo Car Simulation
+
+The `gazebo_car_simulation` package provides a complete 3D simulation environment for testing the BatMobile's navigation capabilities.
+
+![Gazebo Simulation](docs/images/gazebo_simulation.png)
+*Gazebo simulation environment with the BatMobile model*
+
+### PID Control Implementation
+
+The system implements an PID controller for precise path following:
+
+#### Evolution of PID Implementation
+
+- **PIDv1**: Basic implementation using angle-based error calculation
+- **PIDv2**: Improved with RViz and Matplotlib visualization
+- **PIDv3**: Completely revamped to use cross-track error for better accuracy
+- **PIDv4**: Implemented auto-tuning capabilities for path-specific optimization
+- **PIDv5/v6**: Enhanced to support realistic vehicle kinematics with angular velocity
+- **PIDv7**: Thetha and X changed to Angular vel and Linear vel.
+
+#### Key Features
+
+- **Automatic Parameter Tuning**: Self-optimizes PID parameters based on path characteristics (till PIDv4)
+- **Cross-Track Error Minimization**: Maintains precise path adherence
+- **Visualization Tools**: Real-time performance monitoring with RViz and Matplotlib(for Rviz package and PIDv6. v7 not supported yet.)
+
+![PID Control Visualization](docs/images/pid_visualization.png)
+*Visualization of the BatMobile following a path with PID control*
+
+![Auto-Tuning Process](docs/images/pid_tuning.png)
+*PID parameter auto-tuning process*
+
+### RViz Path Simulation
+
+The `rviz_path_simulation` package provides visualization for testing path planning.
+
+#### Features
+- **Path Visualization**: Display planned paths and robot trajectory
+
+![RViz Path Following](docs/images/rviz_path.png)
+*RViz visualization of path following with cross-track error highlighted*
+
+### Occupancy Matrix
+
+The `occupancy_matrix` package provides tools for environmental mapping and path planning.
+
+#### Features
+
+- **Map Generation**: Create arbitrary occupancy grids for testing
+- **Target Identification**: Automatic detection of targets within the map
+- **Path Planning**: Generate optimal paths to approach targets
+
+![Occupancy Matrix](docs/images/occupancy_matrix.png)
+*Occupancy grid with path planning. Magenta dot is start position, green dot is target position*
+
+## Building and Running
+
+### Prerequisites
+
+- **ROS2 Humble**: Follow the [official installation guide](https://docs.ros.org/en/humble/Installation.html)
+- **Gazebo Fortress**: For simulation environments
+
+### Building the Workspace
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/SeDriCa-BatMobile.git
+   cd SeDriCa-BatMobile
+   ```
+
+2. **Build the IntegratedPipeline**:
+   ```bash
+   cd IntegratedPipeline
+   colcon build
+   ```
+
+3. **Build the Motion Planning components**:
+   ```bash
+   cd ../Motion_Planning
+   colcon build
+   ```
+
+### Running the System
+
+#### IntegratedPipeline
+
+```bash
+# Source the setup file
+cd IntegratedPipeline
+source install/setup.bash
+
+# Launch the main system
+ros2 launch batmobile_integrated batmobile.launch.py
+```
+
+#### Gazebo Simulation
+
+```bash
+# Source the setup file
+cd Motion_Planning
+source install/setup.bash
+
+# Launch the Gazebo simulation
+ros2 launch gazebo_car_simulation sim.launch.py
+```
+## Contributing
+
+Contributions to the SeDriCa-BatMobile project are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## Acknowledgments
+
+- Thanks to all contributors who have helped develop the SeDriCa-BatMobile project.
