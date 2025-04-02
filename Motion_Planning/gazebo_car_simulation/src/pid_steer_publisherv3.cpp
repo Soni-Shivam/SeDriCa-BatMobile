@@ -6,7 +6,9 @@
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include <cmath>
 #include <vector>
-
+using namespace std;
+// goal to keep car position to 0,0 at all times 
+// change the target points dfdynamically as the car moves forward.
 class PIDSteerPublisher : public rclcpp::Node {
 public:
     PIDSteerPublisher()
@@ -16,19 +18,22 @@ public:
         angular_speed_(2.0),
         dt_(0.01),
         current_waypoint_index_(1) {
-
         // Load path from CSV
-        std::string path_file = ament_index_cpp::get_package_share_directory("mycarsim") + "/path.csv";
+        std::string path_file = ament_index_cpp::get_package_share_directory("gazebo_car_simulation") + "/path.csv";
         path_ = trajectory_generator_.loadPath(path_file);
 
         if (path_.empty()) {
             RCLCPP_ERROR(this->get_logger(), "Path file is empty or not found!");
             return;
         }
-
         // Initialize car state
-        car_position_ = path_[0];
-        heading_ = getTargetHeading(car_position_, path_[current_waypoint_index_]);
+        car_position_ = {0,0};
+        for (auto waypoint: path_) {
+            waypoint[0] -= path_[0][0];
+            waypoint[1] -= path_[0][1];
+        }
+        double initialHeading  = 0;
+        heading_ = getTargetHeading(car_position_, transformToCarFrame(path_[current_waypoint_index_], car_position_, initialHeading));
 
         // Create publisher for /cmd_vel
         velocity_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
@@ -48,12 +53,13 @@ private:
     TrajectoryGenerator trajectory_generator_;
     std::vector<std::vector<double>> path_;
     std::vector<double> car_position_;
+    std::vector<double> global_car_pos = {0,0};
+
     int current_waypoint_index_;
     double speed_;
     double angular_speed_;
     double dt_;
-    double heading_, current_heading_;
-    double look_ahead_distance_;
+    double heading_, global_current_heading_;
     const double K_cte = 0.5; 
 
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_publisher_;
@@ -63,7 +69,7 @@ private:
     // Utility Functions
     std::vector<double> subtractVectors(const std::vector<double>& a, const std::vector<double>& b) {
         std::vector<double> result(a.size());
-        for (size_t i = 0; i < a.size(); ++i) {
+        for (size_t i = 0; i < =a.size()-1; i++) {
             result[i] = a[i] - b[i];
         }
         return result;
@@ -94,6 +100,23 @@ private:
         if (value > max) return max;
         return value;
     }
+
+    vector<double> transformToCarFrame(const std::vector<double>& global_point, 
+        const std::vector<double>& global_car_position, 
+        double car_heading) {
+        
+        double dx = global_point[0] - global_car_position[0];
+        double dy = global_point[1] - global_car_position[1];
+
+        double cos_theta = cos(-car_heading);
+        double sin_theta = sin(-car_heading);
+
+        double local_x = cos_theta * dx - sin_theta * dy;
+        double local_y = sin_theta * dx + cos_theta * dy;
+
+        return {local_x, local_y};
+    }
+    
 
     // Cross Track Error Calculation
     double getCrossTrackError(const std::vector<double>& currentWaypoint,
@@ -139,13 +162,14 @@ private:
             RCLCPP_WARN(this->get_logger(), "Received empty PoseArray message!");
             return;
         }
-
+        double virtualX = 0, virtualY =0;
         // Assuming the first pose in the array represents the robot's current position
-        car_position_[0] = msg->poses[1].position.x;
-        car_position_[1] = msg->poses[1].position.y;
-
+        virtualX = msg->poses[1].position.x;
+        virtualY = msg->poses[1].position.y;
+        global_car_pos[0] = virtualX;
+        global_car_pos[1] = virtualY;
         // Compute the current heading from the first pose's orientation
-        current_heading_ = atan2(
+        global_current_heading_ = atan2(
             2.0 * (msg->poses[1].orientation.w * msg->poses[1].orientation.z +
                    msg->poses[1].orientation.x * msg->poses[1].orientation.y),
             1.0 - 2.0 * (msg->poses[1].orientation.y * msg->poses[1].orientation.y +
@@ -153,54 +177,59 @@ private:
     }
 
     void controlLoop() {
-        if (current_waypoint_index_ >= path_.size()) return;
+        if (current_waypoint_index_ >= path_.size()) {
+            RCLCPP_WARN(this->get_logger(), "All waypoints reached. Stopping control loop.");
+            return;
+        }
     
-        // Check if we've reached the next waypoint
-        if (hasPassedWaypoint(car_position_, path_[current_waypoint_index_ - 1], path_[current_waypoint_index_])) {
+        // Transform next waypoint and last waypoint to local frame
+        vector<double> local_wp = transformToCarFrame(path_[current_waypoint_index_], global_car_pos, global_current_heading_);
+        vector<double> local_last_wp = transformToCarFrame(path_[current_waypoint_index_ - 1], global_car_pos, global_current_heading_);
+    
+        // The car's position is always (0,0) in the local frame
+        vector<double> car_local_pos = {0, 0};  
+    
+        // Check if we've reached the next waypoint in the local frame
+        if (hasPassedWaypoint(car_local_pos, local_last_wp, local_wp)) {
             current_waypoint_index_++;
             if (current_waypoint_index_ >= path_.size()) return;
         }
-        
-        // Compute desired heading to next waypoint
-        double desired_heading = getTargetHeading(car_position_, path_[current_waypoint_index_]);
-        
-        // Compute heading error (difference between desired and current heading)
-        double heading_error = desired_heading - current_heading_;
-        // Normalize to [-π, π]
+    
+        // Compute desired heading in the local frame
+        double desired_heading = atan2(local_wp[1], local_wp[0]);
+    
+        // Compute heading error directly (since robot faces local x-axis)
+        double heading_error = desired_heading;
+    
+        // Normalize heading error to [-π, π]
         heading_error = atan2(sin(heading_error), cos(heading_error));
-        
-        // Compute Cross-Track Error
-        double cte = getCrossTrackError(path_[current_waypoint_index_],
-                                   path_[current_waypoint_index_ - 1],
-                                   car_position_);
-        int steer_dir = getSteerDirection(path_[current_waypoint_index_],
-                                       path_[current_waypoint_index_ - 1],
-                                       car_position_);
+    
+        // Compute Cross-Track Error (CTE)
+        double cte = getCrossTrackError(local_wp, local_last_wp, car_local_pos);
+        int steer_dir = getSteerDirection(local_wp, local_last_wp, car_local_pos);
         cte *= steer_dir;  // Apply direction to CTE
-        
-        // Use PID to compute steering adjustment based on CTE
+    
+        // Compute steering command using PID
         double steering_command = pid_.compute(cte, dt_);
-        
+    
         // Set command velocities
         geometry_msgs::msg::Twist cmd;
         cmd.linear.x = speed_;
-        
-        // Apply steering command to angular velocity with proper limiting
-        // Combine with a proportional correction based on heading error
-        cmd.angular.z = steering_command + 0.5 * heading_error;  // Add heading correction
+    
+        // Apply heading correction along with PID correction
+        cmd.angular.z = steering_command + 0.5 * heading_error;
         cmd.angular.z = clamp(cmd.angular.z, -angular_speed_, angular_speed_);
-        
+    
         velocity_publisher_->publish(cmd);
-        
+    
         // Debugging Output
         RCLCPP_INFO(this->get_logger(), 
-                    "Target: (%.2f,%.2f) | Pos: (%.2f, %.2f) | Current Heading: %.2f | "
-                    "Desired Heading: %.2f | Heading Error: %.2f | CTE: %.2f | Command: %.2f",
-                    path_[current_waypoint_index_][0], path_[current_waypoint_index_][1],
-                    car_position_[0], car_position_[1], 
-                    current_heading_, desired_heading, heading_error, 
-                    cte, cmd.angular.z);
+                    "Target: (%.2f,%.2f) | Car Local: (%.2f, %.2f) | Heading Error: %.2f | CTE: %.2f | Command: %.2f",
+                    local_wp[0], local_wp[1],
+                    car_local_pos[0], car_local_pos[1],  
+                    heading_error, cte, cmd.angular.z);
     }
+    
 };
 
 // Main Function
